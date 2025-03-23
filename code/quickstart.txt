@@ -1,0 +1,9 @@
+For a quick start with the MF program, follow these four simple steps:
+
+    1. Make sure you have installed the python>=3.7, numpy>=1.18.1, and the pytorch>=1.7.
+    2. Download the codes and datasets and navigate to the directory of "./code/".
+    3. Train MF by running "python main.py". The model will be saved in "./code/models/" folder.
+    4. Load the best model and obtain the evaluation results by running "python test.py".
+
+The default hyper-parameters and their detailed descriptions can be found in ``main.py``. 
+You may also tune the hyper-parameters for exploration. 
