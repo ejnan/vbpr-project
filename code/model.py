@@ -5,8 +5,6 @@ class MF(nn.Module):
     def __init__(self, num_users, num_items, embedding_size=8, dropout=0, mean=0):
         super(MF, self).__init__()
         self.user_emb = nn.Embedding(num_users, embedding_size)
-        self.user_visual_emb = nn.Embedding(num_users, visual_projection_size)
-        
         self.user_bias = nn.Embedding(num_users, 1)
         self.item_emb = nn.Embedding(num_items, embedding_size)
         self.item_bias = nn.Embedding(num_items, 1)
@@ -29,7 +27,7 @@ class MF(nn.Module):
         return self.dropout((U * I).sum(1) + b_u + b_i + self.mean)
     
 class VBPR(nn.Module):
-    def __init__(self, num_users, num_items, embedding_size=64, visual_size=512, category_size=16, visual_projection_size=64, dropout=0, mean=0):
+    def __init__(self, num_users, num_items, embedding_size=64, visual_size=512, category_size=16, visual_projection_size=64, dropout=0, mean=0, alpha=0.5):
 
         super(VBPR, self).__init__()
         
@@ -38,6 +36,9 @@ class VBPR(nn.Module):
         # Item Visual Factors (D x 1) and Item Latent Factors (F x 1) -> 
         # Item Factors and User Factors -> Prediction taking into account Biases
         
+        self.alpha = nn.Parameter(torch.tensor(alpha))
+        self.sigmoid = nn.Sigmoid()
+
         # User components
         # Traditional user latent factors for CF
         self.user_emb = nn.Embedding(num_users, embedding_size)
@@ -175,8 +176,14 @@ class VBPR(nn.Module):
             # Calculate category component prediction
             category_pred = torch.sum(U_c * I_c, dim=1)
         
-        # Combine all components for final prediction: 
-        # CF component + Visual component + Category component + Biases
-        prediction = mf_pred + visual_pred + category_pred + b_u + b_i + self.mean
+        # Collaborative Filtering (MF) component with biases
+        mf_full = mf_pred + b_u + b_i + self.mean
         
+        # Content-based components
+        content_pred = visual_pred + category_pred
+        
+        # Alpha-weighted combination (0-1 constrained)
+        alpha = self.sigmoid(self.alpha)
+        prediction = (1 - alpha) * mf_full + alpha * content_pred
+
         return self.dropout(prediction)
