@@ -28,7 +28,24 @@ if __name__ == "__main__":
     user_num, item_num, train_dict, valid_dict, test_dict, train_data, valid_gt, test_gt = data_utils.load_all(train_path, valid_path, test_path)
 
     ########################### LOAD MODEL #################################
-    model = torch.load(f"./models/{args.ckpt}")
+    # Load checkpoint
+    checkpoint = torch.load(f"./models/{args.ckpt}", map_location=args.device)
+    
+    # Initialize model
+    model = model.VBPR(
+        user_num, item_num,
+        embedding_size=64,
+        visual_size=512,
+        category_size=16,
+        visual_projection_size=64,
+        dropout=0.0,
+        alpha=checkpoint.get('alpha', 0.5)  # Load saved alpha, will be overwritten by checkpoint value
+    )
+    
+    # Load weights and alpha
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.alpha.data = torch.tensor(checkpoint['alpha'])  # Explicitly set alpha
+    
     model.to(args.device)
 
     try:

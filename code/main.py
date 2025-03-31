@@ -84,7 +84,7 @@ if __name__ == "__main__":
 	print("\nCreating model...")
 	if args.model == 'VBPR':
 		model = VBPR(user_num, item_num, args.emb_size, args.visual_size, args.category_size, 
-                     args.visual_projection_size, args.dropout)
+                     args.visual_projection_size, args.dropout, alpha=args.alpha)
 		print("Setting visual features...")
 		model.set_visual_features(visual_features)
 		print("Setting category features...")
@@ -149,9 +149,11 @@ if __name__ == "__main__":
 				# save model
 				if not os.path.exists(args.model_path):
 					os.mkdir(args.model_path)
-				torch.save(model, '{}{}_{}lr_{}F_{}D_{}cat_alpha{:.1f}_{}.pth'.format(
-					args.model_path, args.model, args.lr, args.emb_size, args.visual_projection_size,
-					args.category_size, args.alpha, args.log_name))
+				torch.save({
+    				'model_state_dict': model.state_dict(),
+					'alpha': model.alpha.item(),
+					'epoch': epoch
+				}, f'{args.model_path}VBPR_{args.lr}lr_{args.emb_size}F_{args.visual_projection_size}D_{args.category_size}cat_alpha{args.alpha:.1f}_{args.log_name}.pth')
 				
 	print('==='*18)
 	print(f"End. Best Epoch is {best_epoch}")
