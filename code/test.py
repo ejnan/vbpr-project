@@ -30,38 +30,56 @@ if __name__ == "__main__":
     ########################### LOAD MODEL #################################
     # Load checkpoint
     checkpoint = torch.load(f"./models/{args.ckpt}", map_location=args.device)
-    
-    # Initialize model
-    model = model.VBPR(
-        user_num, item_num,
-        embedding_size=64,
-        visual_size=512,
-        category_size=16,
-        visual_projection_size=64,
-        dropout=0.0,
-        alpha=checkpoint.get('alpha', 0.5)  # Load saved alpha, will be overwritten by checkpoint value
-    )
-    
-    # Load weights and alpha
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.alpha.data = torch.tensor(checkpoint['alpha'])  # Explicitly set alpha
-    
+    if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+        # New format (state_dict)
+        model = model.VBPR(
+            user_num, item_num,
+            embedding_size=64,
+            visual_size=512,
+            category_size=16,
+            visual_projection_size=64,
+            dropout=0.0,
+            alpha=checkpoint.get('alpha', 0.5)
+        )
+        
+        # Load features first
+        try:
+            category_features = np.load(category_path, allow_pickle=True).item()
+            model.set_category_features(category_features)
+            print(f"Successfully loaded category features: {len(category_features)} items")
+        except Exception as e:
+            print(f"Error loading category features: {e}")
+            
+        try:
+            visual_features = np.load(visual_path, allow_pickle=True).item()
+            model.set_visual_features(visual_features)
+            print(f"Successfully loaded visual features: {len(visual_features)} items")
+        except Exception as e:
+            print(f"Error loading visual features: {e}")
+        
+        # Load state dict with strict=False to ignore unexpected keys
+        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+    else:
+        # Old format (full model)
+        model = checkpoint
+        
+        # Load features
+        try:
+            category_features = np.load(category_path, allow_pickle=True).item()
+            model.set_category_features(category_features)
+            print(f"Successfully loaded category features: {len(category_features)} items")
+        except Exception as e:
+            print(f"Error loading category features: {e}")
+            
+        try:
+            visual_features = np.load(visual_path, allow_pickle=True).item()
+            model.set_visual_features(visual_features)
+            print(f"Successfully loaded visual features: {len(visual_features)} items")
+        except Exception as e:
+            print(f"Error loading visual features: {e}")
+
     model.to(args.device)
-
-    try:
-        category_features = np.load(category_path, allow_pickle=True).item()
-        model.set_category_features(category_features)
-        print(f"Succecssfully loaded category features: {len(category_features)} items")
-    except Exception as e:
-        print(f"Error loading category features: {e}")
-
-    try:
-        visual_features = np.load(visual_path, allow_pickle=True).item()
-        model.set_visual_features(visual_features)
-        print(f"Succecssfully loaded visual features: {len(visual_features)} items")
-    except Exception as e:
-        print(f"Error loading visual features: {e}")
-
+    
     ########################### EVALUATION #####################################
     model.eval()
     
